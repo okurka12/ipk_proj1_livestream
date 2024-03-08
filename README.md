@@ -5,8 +5,8 @@ Here you'll find all the files shown on the livestream (link? 🤔)
 # Contents
 
 - `epoll_server.py` a python script that starts a UDP server on port `6969`
-and when it receives a packet, prints it and waits for `N` seconds and then
-sends a reply
+and when it receives a packet, prints it and waits for `N` (4 by default)
+seconds and then sends a reply
 
 - `epoll.c` a simple program that sends a UDP packet to port `6969` and then
 waits until it either receives a reply to that packet OR receives input on
@@ -19,6 +19,8 @@ form of an IP address and a `sendto` call
 # Soon
 I want to add:
 - a module that demonstrates the use of `getaddrinfo`
+- a demo of `threads.h`
+- my implementation of the python mock server
 
 # Build process
 Running `make` will build `epl.bin`
