@@ -4,24 +4,35 @@ Here you'll find all the files shown on the livestream (link? 🤔)
 
 # Contents
 
-- `epoll_server.py` a python script that starts a UDP server on port `6969`
+- `epoll_server.py`\
+a python script that starts a UDP server on port `6969`
 and when it receives a packet, prints it and waits for `N` (4 by default)
 seconds and then sends a reply
 
-- `epoll.c` a simple program that sends a UDP packet to port `6969` and then
+- `epoll.c`\
+a simple program that sends a UDP packet to port `6969` and then
 waits until it either receives a reply to that packet OR receives input on
 standard input. Then it prints either `stdin event happened first` or
 `socket event happened first`.
 
-- `udp_send.c` a module that demonstrates processing the dotted decimal
+- `udp_send.c`\
+a module that demonstrates processing the dotted decimal
 form of an IP address and a `sendto` call - used by `epoll.c`
 
-- `resolve_hostname.c` a program demonstrates a `getaddrinfo` call to resolve
+- `resolve_hostname.c`\
+a program demonstrates a `getaddrinfo` call to resolve
 a hostname to a dotted decimal IP address
 
-- `socket_timeout.c` a program that creates a socket, sets a timeout on
+- `socket_timeout.c`\
+a program that creates a socket, sets a timeout on
 the socket, binds to port `55555`, and calls `recv`. If no UDP packet
 comes to port `55555` in 1.25 s, returns.
+
+- `capt.sh`\
+a script that uses `tcpdump` to capture all UDP + ICMP packets
+on either the default interface or loopback interface (choose by uncommenting)
+one in the script. Saves all the captured packets to `tcpdump.log`, but only
+prints those that are from/to `HOST` (a variable defined in the script)
 
 
 # Soon
