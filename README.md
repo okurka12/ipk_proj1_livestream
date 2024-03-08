@@ -37,10 +37,8 @@ prints those that are from/to `HOST` (a variable defined in the script)
 
 # Soon
 I want to add:
-- a module that demonstrates the use of `getaddrinfo`
 - a demo of `threads.h`
 - my implementation of the python mock server
-- `capture.sh` script that uses various `tcpdump` commands
 
 # Build process
 Running `make` will build:
