@@ -19,7 +19,7 @@ GREP_OPTS="--color=auto -A $NUM -F"
 
 CAPT_FILENAME=tcpdump.log
 
-# only show packets to/from hostname on the terminal
+# only show packets to/from HOST on the terminal
 HOST=localhost
 
 if [ -f "$CAPT_FILENAME" ]; then
