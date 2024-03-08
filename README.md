@@ -21,6 +21,7 @@ I want to add:
 - a module that demonstrates the use of `getaddrinfo`
 - a demo of `threads.h`
 - my implementation of the python mock server
+- `capture.sh` script that uses various `tcpdump` commands
 
 # Build process
 Running `make` will build `epl.bin`
