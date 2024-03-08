@@ -30,3 +30,9 @@ Running `make` will build `epl.bin`
 In one terminal, run `python3 epoll_server.py`. Then, in a second terminal,
 run `./epl.bin`. You can either wait and see that the server sent a reply
 or press enter and see that stdin was processed.
+
+# Useful links
+- [project 1 assignment](https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/Project%201)
+- [general project specifications](https://git.fit.vutbr.cz/NESFIT/IPK-Projects-2024/src/branch/master/README.md)
+- [development environments](https://git.fit.vutbr.cz/NESFIT/dev-envs)
+- [C socket UDP client - IBM z/OS doc](https://www.ibm.com/docs/en/zos/3.1.0?topic=programs-c-socket-udp-client)
