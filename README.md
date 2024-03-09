@@ -1,6 +1,6 @@
 # Demo files for the IPK first project livestream
 
-Here you'll find all the files shown on the livestream (link? 🤔)
+Here you'll find all the files shown on the livestream (https://www.youtube.com/watch?v=vyVJRc0kr6s)
 
 # Contents
 
