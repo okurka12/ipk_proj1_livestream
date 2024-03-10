@@ -187,7 +187,7 @@ def recv_loop(sock: socket.socket) -> None:
             auth_success: int = REPLY_SUCCESS  # 1 - success, 0 - failure
             print(f"sending REPLY (id={reply_id}) for msg id={msg.id}")
             "o.k.u.r.k.a.1.2"
-            arr = [1, 0, reply_id, auth_success]
+            arr = [1, 0, reply_id, auth_success, response[1], response[2]]
             arr.extend([ord(c) for c in "ahoj toto je zprava typu REPLY"])
             reply = bytearray(arr)
             reply_socket.sendto(reply, retaddr)
