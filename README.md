@@ -40,17 +40,7 @@ prints those that are from/to `HOST` (a variable defined in the script)
 `ipk_server.py` is a mock server you can run on localhost (or anywhere else,
 really) to test your IPK client implementation.
 
-## notes
-
-Here's basic information and limitation of the server
-
-- The server only supports UDP.
-- The server only chats with one client at a time.
-- The server doesn't distribute messages between clients.
-- The server does not care if its messages were confirmed or not
-- Python version shouldn't really matter, but I run it using 3.12.2
-
-## features
+## Features
 
 The server can't do much, but it:
 
@@ -65,6 +55,66 @@ binary content and parsed fields
 display name `Server`
 - if the word `bye` is in the MSG message from client, server sends a BYE
 message
+
+## Notes
+
+Here's basic information and limitation of the server
+
+- The server only supports UDP.
+- The server only chats with one client at a time.
+- The server doesn't distribute messages between clients.
+- The server does not care if its messages were confirmed or not
+- Python version shouldn't really matter, but I run it using 3.12.2
+
+## Example communication
+
+Here's the client side:
+```
+vita@HP-VITA-NOVY:~/ipk$ ./ipk24chat-client -t udp -s localhost
+/auth username secret displayname
+Success: Hi, displayname! is a REPLY for msgid=69
+hello this is a MSG message from client
+Server: this is a reply MSG to message 'hello this is a MSG ...' :)
+thank you for the reply, bye
+Server: this is a reply MSG to message 'thank you for the re...' :)
+vita@HP-VITA-NOVY:~/ipk$
+```
+
+Here's the server side:
+```
+vita@HP-VITA-NOVY:~/ipk$ py server.py
+started server on 0.0.0.0 port 4567
+
+Message came to port 4567
+MESSAGE from 127.0.0.1:48435:
+TYPE: AUTH
+ID: 69
+USERNAME: 'username'
+DISPLAY NAME: 'displayname'
+SECRET: 'secret'
+b'\x02\x00Eusername\x00displayname\x00secret\x00'
+confirming msg id=69
+sending REPLY for AUTH msg id=69
+
+Message came to port dyn2
+MESSAGE from 127.0.0.1:48435:
+TYPE: MSG
+ID: 70
+DISPLAY NAME: 'displayname'
+'hello this is a MSG message from client'
+b'\x04\x00Fdisplayname\x00hello this is a MSG message from client\x00'
+confirming msg id=70
+
+Message came to port dyn2
+MESSAGE from 127.0.0.1:48435:
+TYPE: MSG
+ID: 71
+DISPLAY NAME: 'displayname'
+'thank you for the reply, bye'
+b'\x04\x00Gdisplayname\x00thank you for the reply, bye\x00'
+confirming msg id=71
+sending BYE...
+```
 
 # Build process
 Running `make` will build:
