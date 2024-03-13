@@ -21,8 +21,6 @@ RECV_TIMEOUT = 0.01
 
 REPLY_FROM_DYNAMIC_PORT = True
 
-OCCASIONALLY_SEND_TWICE = True
-
 FAMILY = socket.AF_INET
 
 # do we want to prin bloat?
@@ -164,7 +162,7 @@ def recv_loop(sock: socket.socket) -> None:
         # print on stdout
         if msg.type != "CONFIRM":
             print("\nMessage came to port "
-                  + "dyn2" if came_to_dynamic_port else str(UDP_PORT))
+                  + ("dyn2" if came_to_dynamic_port else str(UDP_PORT)))
             print(f"MESSAGE from {retaddr[0]}:{retaddr[1]}:")
             print(msg)
 
