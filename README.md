@@ -47,7 +47,7 @@ Here's basic information and limitation of the server
 - The server only supports UDP.
 - The server only chats with one client at a time.
 - The server doesn't distribute messages between clients.
-- The server does not c
+- The server does not care if its messages were confirmed or not
 - Python version shouldn't really matter, but I run it using 3.12.2
 
 ## features
@@ -63,6 +63,8 @@ binary content and parsed fields
 `REPLY_FROM_DYNAMIC_PORT` variable in the script)
 - for every `MSG` message from the client, it sends back a MSG with
 display name `Server`
+- if the word `bye` is in the MSG message from client, server sends a BYE
+message
 
 # Build process
 Running `make` will build:
