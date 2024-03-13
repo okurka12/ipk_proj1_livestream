@@ -9,6 +9,7 @@
 # https://wiki.python.org/moin/UdpCommunication
 
 import socket
+from random import randint
 
 # what address to listen on
 # BIND_IP = "127.0.0.1"  # localhost (loopback only)
@@ -20,18 +21,15 @@ RECV_TIMEOUT = 0.01
 
 REPLY_FROM_DYNAMIC_PORT = True
 
-# set to 1 if you want to respond a REPLY message with result=success
-# to an AUTH message,
-# set it to 0 if you want to respond with result=failure
-REPLY_SUCCESS = 1
+OCCASIONALLY_SEND_TWICE = True
 
-AF_FAMILY = socket.AF_INET
+FAMILY = socket.AF_INET
 
-# do we want to print bloat?
+# do we want to prin bloat?
 VERBOSE = False
 
 # https://stackoverflow.com/questions/5815675/what-is-sock-dgram-and-sock-stream
-SOCKTYPE = socket.SOCK_DGRAM
+TYPE = socket.SOCK_DGRAM
 
 MSG_TYPES: dict[str] = {
     0x00: "CONFIRM",
@@ -112,14 +110,13 @@ class Message:
     def __getattr__(self, attr) -> None:
         if VERBOSE:
             print(f"ERROR: MSG:{hex(id(self))} has no attribute '{attr}' "
-                f"(mtype: {self.type}, ok_ur_ka_12)")
+                f"(mtype: {self.type})")
 
 
 def str_from_bytes(startpos: int, b: bytes) -> str:
     """
     reads a null terminated string beginning at `startpos` in `b`.
     returns the string
-    o k u r k a 1 2
     """
     output = ""
     i = startpos
@@ -127,6 +124,7 @@ def str_from_bytes(startpos: int, b: bytes) -> str:
         output += chr(b[i])
         i += 1
     return output
+
 
 
 def no_lf(s: str) -> str:
@@ -138,7 +136,7 @@ def no_lf(s: str) -> str:
 def recv_loop(sock: socket.socket) -> None:
 
     # socket to send replies from
-    sock_dynport = socket.socket(AF_FAMILY, SOCKTYPE)
+    sock_dynport = socket.socket(FAMILY, TYPE)
     sock_dynport.settimeout(RECV_TIMEOUT)
 
     while True:
@@ -170,9 +168,12 @@ def recv_loop(sock: socket.socket) -> None:
             print(f"MESSAGE from {retaddr[0]}:{retaddr[1]}:")
             print(msg)
 
+        # sleep for 50 ms
+        # time.sleep(0.1)
+
         reply_socket = sock_dynport if REPLY_FROM_DYNAMIC_PORT else sock
 
-        # send CONFIRM
+        # send CONFIRM and REPLY
         if msg.type != "CONFIRM":
             print(f"confirming msg id={msg.id}")
             reply = bytearray(3)
@@ -181,22 +182,40 @@ def recv_loop(sock: socket.socket) -> None:
             reply[2] = response[2]
             reply_socket.sendto(reply, retaddr)
 
-        # send another message
-        if msg.type == "AUTH":
+        if msg.type == "AUTH" or msg.type == "JOIN":
             reply_id = 23  # from 0 to 255
-            auth_success: int = REPLY_SUCCESS  # 1 - success, 0 - failure
+            auth_success: int = 1  # 1 - success, 0 - failure
             print(f"sending REPLY (id={reply_id}) for msg id={msg.id}")
-            "o.k.u.r.k.a.1.2"
             arr = [1, 0, reply_id, auth_success, response[1], response[2]]
-            arr.extend([ord(c) for c in "ahoj toto je zprava typu REPLY"])
+            reply_text = f"Hi, {msg.dname}! is a REPLY for msgid={msg.id}"
+            arr.extend([ord(c) for c in reply_text])
             reply = bytearray(arr)
             reply_socket.sendto(reply, retaddr)
+
+        if msg.type == "MSG":
+            reply_text = f"this is a reply MSG to " \
+            f"message '{msg.content[:20]}...' :)"
+            id_lb = randint(0, 255)
+            id_mb = randint(0, 255)
+            arr = [MSG_INV_TYPES["MSG"], id_mb, id_lb]
+            arr.extend([ord(c) for c in "Server"])
+            arr.append(0)
+            arr.extend([ord(c) for c in reply_text])
+            arr.append(0)
+            reply = bytearray(arr)
+            reply_socket.sendto(reply, retaddr)
+
+        if msg.type == "MSG" and "bye" in msg.content:
+            print("sending BYE...")
+            reply = bytearray([MSG_INV_TYPES["BYE"], 255, 255])
+            reply_socket.sendto(reply, retaddr)
+
 
 
 def main():
 
     # create socket and bind
-    sock = socket.socket(AF_FAMILY, SOCKTYPE)
+    sock = socket.socket(FAMILY, TYPE)
     sock.bind((BIND_IP, UDP_PORT))
     sock.settimeout(RECV_TIMEOUT)
     print(f"started server on {BIND_IP} port {UDP_PORT}")
@@ -206,9 +225,9 @@ def main():
     except KeyboardInterrupt:
         print()
 
+
     print("exiting...")
 
 
 if __name__ == "__main__":
     main()
-
