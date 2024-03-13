@@ -189,10 +189,11 @@ def recv_loop(sock: socket.socket) -> None:
             reply_socket.sendto(reply, retaddr)
 
         if msg.type == "AUTH" or msg.type == "JOIN":
-            reply_id = 23  # from 0 to 255
+            id_lb = randint(0, 255)
+            id_mb = randint(0, 255)
             auth_success: int = 1  # 1 - success, 0 - failure
-            print(f"sending REPLY (id={reply_id}) for msg id={msg.id}")
-            arr = [1, 0, reply_id, auth_success, response[1], response[2]]
+            print(f"sending REPLY for AUTH msg id={msg.id}")
+            arr = [MSG_INV_TYPES["REPLY"], id_mb, id_lb, auth_success, response[1], response[2]]
             reply_text = f"Hi, {msg.dname}! is a REPLY for msgid={msg.id}"
             arr.extend([ord(c) for c in reply_text])
             reply = bytearray(arr)
