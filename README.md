@@ -35,10 +35,34 @@ one in the script. Saves all the captured packets to `tcpdump.log`, but only
 prints those that are from/to `HOST` (a variable defined in the script)
 
 
-# Soon
-I want to add:
-- a demo of `threads.h`
-- my implementation of the python mock server
+# Mock server `ipk_server.py`
+
+`ipk_server.py` is a mock server you can run on localhost (or anywhere else,
+really) to test your IPK client implementation.
+
+## notes
+
+Here's basic information and limitation of the server
+
+- The server only supports UDP.
+- The server only chats with one client at a time.
+- The server doesn't distribute messages between clients.
+- The server does not c
+- Python version shouldn't really matter, but I run it using 3.12.2
+
+## features
+
+The server can't do much, but it:
+
+- sends a CONFIRM message for every message from client
+- prints every incoming message (except for CONFIRM messages), both the raw
+binary content and parsed fields
+- always responds to `AUTH` messages with a `REPLY` where `result=1`
+(success) - this can be toggled with the `REPLY_SUCCESS` variable in the script
+- sends responses from a dynamic port (it can be toggled with the
+`REPLY_FROM_DYNAMIC_PORT` variable in the script)
+- for every `MSG` message from the client, it sends back a MSG with
+display name `Server`
 
 # Build process
 Running `make` will build:
