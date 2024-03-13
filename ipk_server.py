@@ -115,6 +115,7 @@ def str_from_bytes(startpos: int, b: bytes) -> str:
     """
     reads a null terminated string beginning at `startpos` in `b`.
     returns the string
+    o k u r k a 1 2
     """
     output = ""
     i = startpos
