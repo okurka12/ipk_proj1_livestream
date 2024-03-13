@@ -3,7 +3,14 @@
 # 2024-03-08 #
 ##############
 
+#
 # author: okurka12 (https://github.com/okurka12)
+#
+# python version: 3.12.2
+#
+# see README.md for more information
+# https://github.com/okurka12/ipk_proj1_livestream/blob/main/README.md
+#
 
 # inspiration
 # https://wiki.python.org/moin/UdpCommunication
