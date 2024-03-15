@@ -40,17 +40,25 @@ prints those that are from/to `HOST` (a variable defined in the script)
 `ipk_server.py` is a mock server you can run on localhost (or anywhere else,
 really) to test your IPK client implementation.
 
+To sum it up, this server is completely stateless and therefore not very
+smart. It just sends responses to anything the client the client sends it
+at any time.
+
 ## Features
 
 The server can't do much, but it:
 
 - sends a CONFIRM message for every message from client
-- prints every incoming message (except for CONFIRM messages), both the raw
+- prints every incoming message (except for `CONFIRM` messages), both the raw
 binary content and parsed fields
 - always responds to `AUTH` messages with a `REPLY` where `result=1`
 (success) - this can be toggled with the `REPLY_SUCCESS` variable in the script
 - sends responses from a dynamic port (it can be toggled with the
 `REPLY_FROM_DYNAMIC_PORT` variable in the script)
+  - `CONFIRM` responses to `AUTH` messages are always sent from the default
+port though. This can be toggled with the `CONFIRM_AUTH_FROM_DEFAULT_PORT`
+variable in the script. To see why this is necessary, see this
+[change to the assignment](https://moodle.vut.cz/mod/forum/discuss.php?d=3834).
 - for every `MSG` message from the client, it sends back a MSG with
 display name `Server`
 - if the word `bye` is in the MSG message from client, server sends a BYE
@@ -61,8 +69,8 @@ message
 Here's basic information and limitation of the server
 
 - The server only supports UDP.
-- The server only chats with one client at a time.
-- The server doesn't distribute messages between clients.
+- The server doesn't distribute messages between clients. It only sends some
+responses it generates itself.
 - The server does not care if its messages were confirmed or not
 - Python version shouldn't really matter, but I run it using 3.12.2
 

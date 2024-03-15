@@ -26,7 +26,16 @@ UDP_PORT = 4567  # default IPK24-CHAT port
 # timeout for recv-loop
 RECV_TIMEOUT = 0.01
 
+# if this flag is True, the server responds from a dynamic port, else,
+# it sends all responses from the default port
+# recommended value: True
 REPLY_FROM_DYNAMIC_PORT = True
+
+# if this flag is True, server sends a CONFIRM message to AUTH message from
+# from the default port whether or not REPLY_FROM_DYNAMIC_PORT is True or not
+# note: it confirms _every_ AUTH message from the default port
+# recommended value: True
+CONFIRM_AUTH_FROM_DEFAULT_PORT = True
 
 FAMILY = socket.AF_INET
 
@@ -145,6 +154,8 @@ def recv_loop(sock: socket.socket) -> None:
     sock_dynport = socket.socket(FAMILY, TYPE)
     sock_dynport.settimeout(RECV_TIMEOUT)
 
+    reply_socket = sock_dynport if REPLY_FROM_DYNAMIC_PORT else sock
+
     while True:
         came_to_default_port = False
         came_to_dynamic_port = False
@@ -162,9 +173,11 @@ def recv_loop(sock: socket.socket) -> None:
             except TimeoutError:
                 pass
 
+        # no message came, go to the start of the loop
         if not came_to_default_port and not came_to_dynamic_port:
             continue
 
+        # message came, parse it
         msg = Message(response)
 
         # print on stdout
@@ -174,25 +187,26 @@ def recv_loop(sock: socket.socket) -> None:
             print(f"MESSAGE from {retaddr[0]}:{retaddr[1]}:")
             print(msg)
 
-        # sleep for 50 ms
-        # time.sleep(0.1)
-
-        reply_socket = sock_dynport if REPLY_FROM_DYNAMIC_PORT else sock
-
-        # send CONFIRM and REPLY
+        # send CONFIRM
         if msg.type != "CONFIRM":
             print(f"confirming msg id={msg.id}")
             reply = bytearray(3)
             reply[0] = MSG_INV_TYPES["CONFIRM"]
             reply[1] = response[1]
             reply[2] = response[2]
-            reply_socket.sendto(reply, retaddr)
+
+            # this weird construction is necessary because the
+            # assignment changed :sob:
+            if CONFIRM_AUTH_FROM_DEFAULT_PORT and msg.type == "AUTH":
+                sock.sendto(reply, retaddr)
+            else:
+                reply_socket.sendto(reply, retaddr)
 
         if msg.type == "AUTH" or msg.type == "JOIN":
             id_lb = randint(0, 255)
             id_mb = randint(0, 255)
             auth_success: int = 1  # 1 - success, 0 - failure
-            print(f"sending REPLY for AUTH msg id={msg.id}")
+            print(f"sending REPLY for {msg.type} msg id={msg.id}")
             arr = [MSG_INV_TYPES["REPLY"], id_mb, id_lb, auth_success, response[1], response[2]]
             reply_text = f"Hi, {msg.dname}! is a REPLY for msgid={msg.id}"
             arr.extend([ord(c) for c in reply_text])
