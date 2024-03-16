@@ -37,6 +37,11 @@ REPLY_FROM_DYNAMIC_PORT = True
 # recommended value: True
 CONFIRM_AUTH_FROM_DEFAULT_PORT = True
 
+# if true, always respond to AUTH and JOIN messages with REPLY
+# where result=1 (success) else, respond with REPLY where result=0 (failure)
+# recommended value: True
+REPLY_SUCCESS = True
+
 FAMILY = socket.AF_INET
 
 # do we want to prin bloat?
@@ -205,7 +210,7 @@ def recv_loop(sock: socket.socket) -> None:
         if msg.type == "AUTH" or msg.type == "JOIN":
             id_lb = randint(0, 255)
             id_mb = randint(0, 255)
-            auth_success: int = 1  # 1 - success, 0 - failure
+            auth_success: int = 1 if REPLY_SUCCESS else 0
             print(f"sending REPLY for {msg.type} msg id={msg.id}")
             arr = [MSG_INV_TYPES["REPLY"], id_mb, id_lb, auth_success, response[1], response[2]]
             reply_text = f"Hi, {msg.dname}! is a REPLY for msgid={msg.id}"
