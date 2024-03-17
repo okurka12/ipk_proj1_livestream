@@ -17,6 +17,8 @@
 
 import socket
 from random import randint
+from typing import Union
+from time import sleep
 
 # what address to listen on
 # BIND_IP = "127.0.0.1"  # localhost (loopback only)
@@ -45,7 +47,18 @@ REPLY_SUCCESS = True
 # send this many MSG replies to MSG messages from client
 # setting this to more than 1 can enable you to test what your client
 # does when the same message (with the same id) comes more than once
+# recommended value: 1
 MSG_REPLY_COUNT: int = 1
+
+# in MSG replies to MSG messages from client, contain this many characters
+# of the client's message contents
+# recommended value: 15
+CONTENT_PREFIX_LENGTH: int = 15
+
+# delay in seconds between sending a reply MSG and a reply BYE to a message
+# from client that contains the word 'bye'
+# recommended value: 0.05
+MSG_BYE_DELAY: float = 0.05
 
 FAMILY = socket.AF_INET
 
@@ -55,6 +68,8 @@ VERBOSE = False
 # https://stackoverflow.com/questions/5815675/what-is-sock-dgram-and-sock-stream
 TYPE = socket.SOCK_DGRAM
 
+# dictionary that maps message type byte to the string representation
+# eg. 0x00 -> "CONFIRM"
 MSG_TYPES: dict[str] = {
     0x00: "CONFIRM",
     0x01: "REPLY",
@@ -65,6 +80,8 @@ MSG_TYPES: dict[str] = {
     0xFF: "BYE",
 }
 
+# dictionary that maps message types from string to binary
+# eg. "CONFIRM" -> 0x00
 MSG_INV_TYPES = {value: key for key, value in MSG_TYPES.items()}
 
 
@@ -151,11 +168,151 @@ def str_from_bytes(startpos: int, b: bytes) -> str:
     return output
 
 
+def sitb(i: int) -> bytearray:
+    """convert a short int (0 to 65535) to big-endian bytearray"""
+    assert 0 <= i <= 65535
+    msb = i // 0x0100
+    lsb = i % 0x0100
+    return bytearray([msb, lsb])
+
+
 
 def no_lf(s: str) -> str:
-    r"""replaces (CR)LF with \n"""
+    r"""replaces (CR)LF with \n (like actual backslash and letter n)"""
     o = s.replace("\r", "")
     return o.replace("\n", "\\n")
+
+
+def render_msg(dname: str, content: str, id: int) -> bytearray:
+    assert all(0x21 <= ord(c) <= 0x7e for c in dname)
+    assert all(0x20 <= ord(c) <= 0x7e for c in content)
+    assert 1 <= len(dname) <= 20
+    assert 1 <= len(content) <= 1400
+    output = bytearray()
+    output.append(MSG_INV_TYPES["MSG"])       # 0x04 - MSG
+    output.extend(sitb(id))                   # message id
+    output.extend([ord(c) for c in dname])    # dname
+    output.append(0)                          # zero byte
+    output.extend([ord(c) for c in content])  # message contents
+    output.append(0)                          # zero byte
+    return output
+
+
+def render_bye(id: int) -> bytearray:
+    output = bytearray()
+    output.append(MSG_INV_TYPES["BYE"])
+    output.extend(sitb(id))
+    return output
+
+def render_confirm(msg: Message) -> bytearray:
+    assert msg.type != "CONFIRM"  # dont confirm confirms
+    output = bytearray()
+    output.append(MSG_INV_TYPES["CONFIRM"])  # 0x00
+    output.extend(sitb(msg.id))              # ref. message id
+    return output
+
+
+def render_reply(msg: Message, id: int, succ: bool, cont: str) -> bytearray:
+    """
+    render a REPLY message to `msg` with id `id`, message content `cont`
+    and result according to `succ` (success, `succ` being True
+    means result=1)
+    """
+    assert (len(cont) <= 1400)
+    output = bytearray()
+    output.append(MSG_INV_TYPES["REPLY"])    # 0x01
+    output.extend(sitb(id))                  # message id
+    output.append(1 if succ else 0)          # result
+    output.extend(sitb(msg.id))              # ref. message id
+    output.extend([ord(c) for c in cont])    # message content
+    output.append(0)                         # zero byte
+    return output
+
+def create_reply_text_msg(msg: Message) -> str:
+    """
+    creates a text for the MSG message from client, tries to contain
+    all the message information in the reply text (id, display name,
+    message content)
+
+    note it supposes that the word 'bye' in the client's message means
+    the server will send it a BYE message
+    """
+    assert msg.type == "MSG"
+    reply_text = f"Hi, {msg.dname}! This is a reply MSG to your MSG " \
+        f"id={msg.id} content='{msg.content[:CONTENT_PREFIX_LENGTH]}...' :)"
+    if "bye" in msg.content:
+        reply_text += " since the word 'bye' was in your message, the " \
+            "server will also send you a BYE message."
+    return reply_text
+
+def create_reply_text_reply(msg: Message, succ: bool) -> str:
+    """
+    same as `create_reply_text_msg`, but for AUTH and JOIN
+    `succ` parameter has the same semantic as in `render_reply`
+    """
+    assert msg.type == "AUTH" or msg.type == "JOIN"
+    reply_text = f"Hi, {msg.dname}, this is "
+    reply_text += "a successful " if succ else \
+        "an unsuccessful "
+    reply_text += f"REPLY message to your {msg.type} message id={msg.id}. "
+    if msg.type == "AUTH":
+        reply_text += f"You wanted to authenticate under the username "
+        reply_text += msg.username
+    elif msg.type == "JOIN":
+        reply_text += f"You wanted to join the channel {msg.chid}"
+    return reply_text
+
+
+def print_message(msg: Message, addr: tuple[str, int], port: Union[int, str]):
+    """
+    print that a message came from `addr` to port `port`
+    and the message itself
+    """
+    print(f"Message from {addr[0]}:{addr[1]} came to port {port}:")
+    print(msg)
+
+
+def confirm_message(dynportsock, defportsock, retaddr, msg: Message) -> None:
+    """
+    confirms a message `msg` either from `dynportsock` or `defportsoct`
+    according to `REPLY_FROM_DYNAMIC_PORT` and
+    `CONFIRM_AUTH_FROM_DEFAULT_PORT` constants
+    """
+    print(f"Confirming {msg.type} message id={msg.id}")
+    reply = render_confirm(msg)
+    if CONFIRM_AUTH_FROM_DEFAULT_PORT and msg.type == "AUTH":
+        defportsock.sendto(reply, retaddr)
+    else:
+        if REPLY_FROM_DYNAMIC_PORT:
+            dynportsock.sendto(reply, retaddr)
+        else:
+            defportsock.sendto(reply, retaddr)
+
+
+def send_response(sock, retaddr, msg: Message) -> None:
+    """
+    according to `msg`'s type, creates and sends a response to it,
+    that can be either MSG, REPLY or BYE message
+    """
+    if msg.type == "AUTH" or msg.type == "JOIN":
+        print(f"sending REPLY with result={1 if REPLY_SUCCESS else 0} "
+                f"to {msg.type} msg id={msg.id}")
+        reply_text = create_reply_text_reply(msg, REPLY_SUCCESS)
+        reply = render_reply(msg, randint(0, 0xffff), REPLY_SUCCESS,
+                                reply_text)
+        sock.sendto(reply, retaddr)
+
+    if msg.type == "MSG":
+        reply_text = create_reply_text_msg(msg)
+        reply = render_msg("Server", reply_text, randint(0, 0xffff))
+        for _ in range(MSG_REPLY_COUNT):  # send n times
+            sock.sendto(reply, retaddr)
+
+    if msg.type == "MSG" and "bye" in msg.content:
+        sleep(MSG_BYE_DELAY)
+        print("sending BYE...")
+        reply = render_bye(0xffff)
+        sock.sendto(reply, retaddr)
 
 
 def recv_loop(sock: socket.socket) -> None:
@@ -166,25 +323,26 @@ def recv_loop(sock: socket.socket) -> None:
 
     reply_socket = sock_dynport if REPLY_FROM_DYNAMIC_PORT else sock
 
+    # basically active waiting, the timeout on the sockets is really small
     while True:
-        came_to_default_port = False
-        came_to_dynamic_port = False
+        came_to_def_port = False
+        came_to_dyn_port = False
 
         # wait for the message
         try:
             response, retaddr = sock.recvfrom(2048)
-            came_to_default_port = True
+            came_to_def_port = True
         except TimeoutError:
             pass
-        if not came_to_default_port:
+        if not came_to_def_port:
             try:
                 response, retaddr = sock_dynport.recvfrom(2048)
-                came_to_dynamic_port = True
+                came_to_dyn_port = True
             except TimeoutError:
                 pass
 
         # no message came, go to the start of the loop
-        if not came_to_default_port and not came_to_dynamic_port:
+        if not came_to_def_port and not came_to_dyn_port:
             continue
 
         # message came, parse it
@@ -192,56 +350,16 @@ def recv_loop(sock: socket.socket) -> None:
 
         # print on stdout
         if msg.type != "CONFIRM":
-            print("\nMessage came to port "
-                  + ("dyn2" if came_to_dynamic_port else str(UDP_PORT)))
-            print(f"MESSAGE from {retaddr[0]}:{retaddr[1]}:")
-            print(msg)
+            print()  # blank line
+            from_port = "dyn2" if came_to_dyn_port else UDP_PORT
+            print_message(msg, retaddr, from_port)
 
-        # send CONFIRM
+        # confirm
         if msg.type != "CONFIRM":
-            print(f"confirming msg id={msg.id}")
-            reply = bytearray(3)
-            reply[0] = MSG_INV_TYPES["CONFIRM"]
-            reply[1] = response[1]
-            reply[2] = response[2]
+            confirm_message(sock_dynport, sock, retaddr, msg)
 
-            # this weird construction is necessary because the
-            # assignment changed :sob:
-            if CONFIRM_AUTH_FROM_DEFAULT_PORT and msg.type == "AUTH":
-                sock.sendto(reply, retaddr)
-            else:
-                reply_socket.sendto(reply, retaddr)
-
-        if msg.type == "AUTH" or msg.type == "JOIN":
-            id_lb = randint(0, 255)
-            id_mb = randint(0, 255)
-            auth_success: int = 1 if REPLY_SUCCESS else 0
-            print(f"sending REPLY for {msg.type} msg id={msg.id}")
-            arr = [MSG_INV_TYPES["REPLY"], id_mb, id_lb, auth_success, response[1], response[2]]
-            reply_text = f"Hi, {msg.dname}! is a REPLY for msgid={msg.id}"
-            arr.extend([ord(c) for c in reply_text])
-            reply = bytearray(arr)
-            reply_socket.sendto(reply, retaddr)
-
-        if msg.type == "MSG":
-            reply_text = f"this is a reply MSG to " \
-            f"message '{msg.content[:20]}...' :)"
-            id_lb = randint(0, 255)
-            id_mb = randint(0, 255)
-            arr = [MSG_INV_TYPES["MSG"], id_mb, id_lb]
-            arr.extend([ord(c) for c in "Server"])
-            arr.append(0)
-            arr.extend([ord(c) for c in reply_text])
-            arr.append(0)
-            reply = bytearray(arr)
-            for i in range(MSG_REPLY_COUNT):
-                reply_socket.sendto(reply, retaddr)
-
-        if msg.type == "MSG" and "bye" in msg.content:
-            print("sending BYE...")
-            reply = bytearray([MSG_INV_TYPES["BYE"], 255, 255])
-            reply_socket.sendto(reply, retaddr)
-
+        # reply
+        send_response(reply_socket, retaddr, msg)
 
 
 def main():

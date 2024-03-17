@@ -82,49 +82,68 @@ responses it generates itself.
 
 Here's the client side:
 ```
-vita@HP-VITA-NOVY:~/ipk$ ./ipk24chat-client -t udp -s localhost
-/auth username secret displayname
-Success: Hi, displayname! is a REPLY for msgid=69
-hello this is a MSG message from client
-Server: this is a reply MSG to message 'hello this is a MSG ...' :)
-thank you for the reply, bye
-Server: this is a reply MSG to message 'thank you for the re...' :)
-vita@HP-VITA-NOVY:~/ipk$
+vita@abakus:~/ipk$ ./ipk24chat-client -t udp -s localhost
+/auth user123 secret123 joe
+Success: Hi, joe, this is a successful REPLY message to your AUTH message id=69. You wanted to authenticate under the username user123
+hi there
+Server: Hi, joe! This is a reply MSG to your MSG id=70 content='hi there...' :)
+/rename donald
+i am now renamed
+Server: Hi, donald! This is a reply MSG to your MSG id=71 content='i am now rename...' :)
+/join channel123
+Success: Hi, donald, this is a successful REPLY message to your JOIN message id=72. You wanted to join the channel channel123
+ok, bye
+Server: Hi, donald! This is a reply MSG to your MSG id=72 content='ok, bye...' :) since the word 'bye' was in your message, the server will also send you a BYE message.
+vita@abakus:~/ipk$
 ```
 
 Here's the server side:
 ```
-vita@HP-VITA-NOVY:~/ipk$ py server.py
+vita@abakus:~/ipk$ py server.py
 started server on 0.0.0.0 port 4567
 
-Message came to port 4567
-MESSAGE from 127.0.0.1:48435:
+Message from 127.0.0.1:55803 came to port 4567:
 TYPE: AUTH
 ID: 69
-USERNAME: 'username'
-DISPLAY NAME: 'displayname'
-SECRET: 'secret'
-b'\x02\x00Eusername\x00displayname\x00secret\x00'
-confirming msg id=69
-sending REPLY for AUTH msg id=69
+USERNAME: 'user123'
+DISPLAY NAME: 'joe'
+SECRET: 'secret123'
+b'\x02\x00Euser123\x00joe\x00secret123\x00'
+Confirming AUTH message id=69
+sending REPLY with result=1 to AUTH msg id=69
 
-Message came to port dyn2
-MESSAGE from 127.0.0.1:48435:
+Message from 127.0.0.1:55803 came to port dyn2:
 TYPE: MSG
 ID: 70
-DISPLAY NAME: 'displayname'
-'hello this is a MSG message from client'
-b'\x04\x00Fdisplayname\x00hello this is a MSG message from client\x00'
-confirming msg id=70
+DISPLAY NAME: 'joe'
+'hi there'
+b'\x04\x00Fjoe\x00hi there\x00'
+Confirming MSG message id=70
 
-Message came to port dyn2
-MESSAGE from 127.0.0.1:48435:
+Message from 127.0.0.1:55803 came to port dyn2:
 TYPE: MSG
 ID: 71
-DISPLAY NAME: 'displayname'
-'thank you for the reply, bye'
-b'\x04\x00Gdisplayname\x00thank you for the reply, bye\x00'
-confirming msg id=71
+DISPLAY NAME: 'donald'
+'i am now renamed'
+b'\x04\x00Gdonald\x00i am now renamed\x00'
+Confirming MSG message id=71
+
+Message from 127.0.0.1:55803 came to port dyn2:
+TYPE: JOIN
+ID: 72
+DISPLAY NAME: 'donald'
+CHANNEL ID: 'channel123'
+b'\x03\x00Hchannel123\x00donald\x00'
+Confirming JOIN message id=72
+
+sending REPLY with result=1 to JOIN msg id=72
+Message from 127.0.0.1:55803 came to port dyn2:
+TYPE: MSG
+ID: 72
+DISPLAY NAME: 'donald'
+'ok, bye'
+b'\x04\x00Hdonald\x00ok, bye\x00'
+Confirming MSG message id=72
 sending BYE...
 ```
 
