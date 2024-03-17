@@ -42,6 +42,11 @@ CONFIRM_AUTH_FROM_DEFAULT_PORT = True
 # recommended value: True
 REPLY_SUCCESS = True
 
+# send this many MSG replies to MSG messages from client
+# setting this to more than 1 can enable you to test what your client
+# does when the same message (with the same id) comes more than once
+MSG_REPLY_COUNT: int = 1
+
 FAMILY = socket.AF_INET
 
 # do we want to prin bloat?
@@ -229,7 +234,8 @@ def recv_loop(sock: socket.socket) -> None:
             arr.extend([ord(c) for c in reply_text])
             arr.append(0)
             reply = bytearray(arr)
-            reply_socket.sendto(reply, retaddr)
+            for i in range(MSG_REPLY_COUNT):
+                reply_socket.sendto(reply, retaddr)
 
         if msg.type == "MSG" and "bye" in msg.content:
             print("sending BYE...")

@@ -61,6 +61,10 @@ variable in the script. To see why this is necessary, see this
 [change to the assignment](https://moodle.vut.cz/mod/forum/discuss.php?d=3834).
 - for every `MSG` message from the client, it sends back a MSG with
 display name `Server`
+  - server's behavior can be configured to send this message more than once
+(with the same ID), so you can test your client's behavior when UDP
+packet duplication occurs. to do this, set the `MSG_REPLY_COUNT` variable
+in the script to a value greater than 1.
 - if the word `bye` is in the MSG message from client, server sends a BYE
 message
 
